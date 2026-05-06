@@ -1,10 +1,15 @@
 package intae;
 
-import org.bsc.langgraph4j.GraphDefinition;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.UserMessage;
+import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.GraphStateException;
 import org.bsc.langgraph4j.StateGraph;
-import org.bsc.langgraph4j.action.AsyncNodeAction;
+import org.bsc.langgraph4j.langchain4j.serializer.std.LC4jStateSerializer;
+import org.bsc.langgraph4j.state.Channel;
+import org.bsc.langgraph4j.state.Channels;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.bsc.langgraph4j.GraphDefinition.END;
@@ -14,26 +19,34 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
-    static void main() throws GraphStateException {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        IO.println(String.format("Hello and welcome!"));
 
-        GreeterNode greeterNode = new GreeterNode();
-        ResponderNode responderNode = new ResponderNode();
+    static CompiledGraph<SupportAgentState> constructGraph() throws Exception {
+        Map<String, Channel<?>> schema = Map.of(
+                "messages", Channels.<ChatMessage>appender(List::of)
+        );
 
-        var stateGraph = new StateGraph<>(SimpleState.SCHEMA, initData -> new SimpleState(initData))
-                .addNode("greeter", node_async(greeterNode))
-                .addNode("responder", node_async(responderNode))
-                .addEdge(START, "greeter")
-                .addEdge("greeter", "responder")
-                .addEdge("responder", END)
-                ;
+        var stateSerializer = new LC4jStateSerializer<>(SupportAgentState::new);
 
-        var compiledGraph = stateGraph.compile();
+        return new StateGraph<>(schema, stateSerializer)
+                .addNode("assistant", node_async(new CallModelAction()))
+                .addEdge(START, "assistant")
+                .addEdge("assistant", END)
+                .compile();
+    }
 
-        for (var item : compiledGraph.stream(Map.of(SimpleState.MESSAGES_KEY, "Let's, begin!"))) {
-            System.out.println(item);
+    static void main() throws Exception {
+        CompiledGraph<SupportAgentState> graph = constructGraph();
+
+        Map<String, Object> input = Map.of(
+                "order", Map.of("orderId", "B73973"),
+                "messages", List.of(UserMessage.from("주문 #B73973를 취소해주세요."))
+        );
+
+        SupportAgentState result = graph.invoke(input)
+                .orElseThrow();
+
+        for (ChatMessage msg : result.messages()) {
+            System.out.println(msg.type() + ": " + msg);
         }
     }
 }

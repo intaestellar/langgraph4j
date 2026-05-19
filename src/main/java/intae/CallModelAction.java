@@ -6,29 +6,23 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.http.client.jdk.JdkHttpClient;
-import dev.langchain4j.http.client.jdk.JdkHttpClientBuilder;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.tool.DefaultToolExecutor;
+import intae.tools.OrderTools;
 import org.bsc.langgraph4j.action.NodeAction;
 
-import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class CallModelAction implements NodeAction<SupportAgentState> {
 
-    private final JdkHttpClientBuilder httpClientBuilder = JdkHttpClient.builder()
-            .httpClientBuilder(HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1));
-
     private final ChatModel llm = OpenAiChatModel.builder()
-            .httpClientBuilder(httpClientBuilder)
             .apiKey("OPENAI_API_KEY")
-            .modelName("")
-            .baseUrl("")
+            .modelName("/models/Qwen3-14B")
+            .baseUrl("http://192.168.35.48:5008/v1")
             .temperature(0.0)
             .logRequests(true)
             .logResponses(true)

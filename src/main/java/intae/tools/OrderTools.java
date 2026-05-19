@@ -1,4 +1,4 @@
-package intae;
+package intae.tools;
 
 
 import dev.langchain4j.agent.tool.Tool;
